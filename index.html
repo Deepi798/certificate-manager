@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .upload-box {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            background: #eef2ff;
+            border-color: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .upload-zone.dragging {
+            background: #e0e7ff;
+            border-color: #4f46e5;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .upload-zone h2 {
+            color: #667eea;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-zone p {
+            color: #64748b;
+            font-size: 1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .certificates-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .section-header h2 {
+            font-size: 1.8rem;
+            color: #1e293b;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 8px 20px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .certificates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .cert-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .cert-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(102,126,234,0.3);
+            border-color: #667eea;
+        }
+
+        .cert-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .cert-icon {
+            font-size: 2.5rem;
+            flex-shrink: 0;
+        }
+
+        .cert-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .cert-name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .cert-meta {
+            display: flex;
+            gap: 15px;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .cert-preview {
+            width: 100%;
+            height: 180px;
+            border-radius: 10px;
+            object-fit: cover;
+            margin-bottom: 15px;
+            background: #f1f5f9;
+        }
+
+        .cert-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-download:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+        }
+
+        .btn-delete {
+            background: #fee;
+            color: #dc2626;
+        }
+
+        .btn-delete:hover {
+            background: #fca5a5;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .empty-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            color: #64748b;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #94a3b8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 1.2rem;
+            color: #64748b;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .certificates-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .filter-buttons {
+                flex-wrap: wrap;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #10b981;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📜 Certificate Manager</h1>
+            <p>Store, organize, and manage all your certificates in one place</p>
+        </div>
+
+        <div class="upload-box">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📤</div>
+                <h2>Upload Certificate</h2>
+                <p>Click to browse or drag and drop your files here</p>
+                <p style="margin-top: 10px; color: #94a3b8; font-size: 0.85rem;">Supports JPG, PNG, PDF • Max 5MB</p>
+                <input type="file" id="fileInput" class="file-input" accept=".jpg,.jpeg,.png,.pdf" multiple>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalCerts">0</div>
+                    <div class="stat-label">Total Certificates</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalSize">0 MB</div>
+                    <div class="stat-label">Total Storage</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="certificates-section">
+            <div class="section-header">
+                <h2>My Certificates</h2>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="image">Images</button>
+                    <button class="filter-btn" data-filter="pdf">PDFs</button>
+                </div>
+            </div>
+
+            <div id="loadingState" class="loading">Loading certificates...</div>
+            
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">📋</div>
+                <h3>No certificates yet</h3>
+                <p>Upload your first certificate to get started</p>
+            </div>
+
+            <div id="certificatesGrid" class="certificates-grid" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let certificates = [];
+        let currentFilter = 'all';
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const loadingState = document.getElementById('loadingState');
+        const emptyState = document.getElementById('emptyState');
+        const certificatesGrid = document.getElementById('certificatesGrid');
+        const totalCerts = document.getElementById('totalCerts');
+        const totalSize = document.getElementById('totalSize');
+
+        // Load certificates on page load
+        loadCertificates();
+
+        // Upload zone click
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // File input change
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragging');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragging');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragging');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderCertificates();
+            });
+        });
+
+        async function loadCertificates() {
+            try {
+                const keys = await window.storage.list('cert:');
+                if (keys && keys.keys) {
+                    const certPromises = keys.keys.map(async (key) => {
+                        try {
+                            const result = await window.storage.get(key);
+                            return result ? JSON.parse(result.value) : null;
+                        } catch (e) {
+                            return null;
+                        }
+                    });
+                    const certs = (await Promise.all(certPromises)).filter(Boolean);
+                    certificates = certs.sort((a, b) => b.uploadDate - a.uploadDate);
+                }
+            } catch (error) {
+                console.error('Error loading certificates:', error);
+            } finally {
+                loadingState.style.display = 'none';
+                updateStats();
+                renderCertificates();
+            }
+        }
+
+        async function handleFiles(files) {
+            const fileArray = Array.from(files);
+            
+            for (const file of fileArray) {
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+                if (!allowedTypes.includes(file.type)) {
+                    showToast('Only JPG, PNG, and PDF files are allowed', 'error');
+                    continue;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    showToast('File size must be less than 5MB', 'error');
+                    continue;
+                }
+
+                await uploadFile(file);
+            }
+            
+            fileInput.value = '';
+        }
+
+        async function uploadFile(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const certData = {
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        data: e.target.result,
+                        uploadDate: Date.now()
+                    };
+
+                    try {
+                        const result = await window.storage.set('cert:' + certData.id, JSON.stringify(certData));
+                        if (result) {
+                            certificates.unshift(certData);
+                            updateStats();
+                            renderCertificates();
+                            showToast('Certificate uploaded successfully!', 'success');
+                        } else {
+                            showToast('Failed to save certificate', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error uploading:', error);
+                        showToast('Error uploading certificate', 'error');
+                    }
+                    resolve();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function updateStats() {
+            totalCerts.textContent = certificates.length;
+            const totalBytes = certificates.reduce((sum, cert) => sum + cert.size, 0);
+            totalSize.textContent = (totalBytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function renderCertificates() {
+            let filteredCerts = certificates;
+            
+            if (currentFilter === 'image') {
+                filteredCerts = certificates.filter(c => c.type.startsWith('image/'));
+            } else if (currentFilter === 'pdf') {
+                filteredCerts = certificates.filter(c => c.type === 'application/pdf');
+            }
+
+            if (filteredCerts.length === 0) {
+                emptyState.style.display = 'block';
+                certificatesGrid.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            certificatesGrid.style.display = 'grid';
+            certificatesGrid.innerHTML = filteredCerts.map(cert => createCertCard(cert)).join('');
+        }
+
+        function createCertCard(cert) {
+            const isPdf = cert.type === 'application/pdf';
+            const date = new Date(cert.uploadDate).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+            const size = formatFileSize(cert.size);
+            const icon = isPdf ? '📄' : '🖼️';
+
+            return '<div class="cert-card"><div class="cert-card-header"><div class="cert-icon">' + icon + '</div><div class="cert-details"><div class="cert-name" title="' + cert.name + '">' + cert.name + '</div><div class="cert-meta"><span>📅 ' + date + '</span><span>💾 ' + size + '</span></div></div></div>' + (!isPdf ? '<img src="' + cert.data + '" alt="' + cert.name + '" class="cert-preview">' : '') + '<div class="cert-actions"><button class="btn btn-download" onclick="downloadCert(\'' + cert.id + '\')">⬇️ Download</button><button class="btn btn-delete" onclick="deleteCert(\'' + cert.id + '\')">🗑️ Delete</button></div></div>';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        async function downloadCert(id) {
+            const cert = certificates.find(c => c.id === id);
+            if (!cert) return;
+
+            const link = document.createElement('a');
+            link.href = cert.data;
+            link.download = cert.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Certificate downloaded!', 'success');
+        }
+
+        async function deleteCert(id) {
+            const cert = certificates.find(c => c.id === id);
+            if (!cert) return;
+
+            if (!confirm('Are you sure you want to delete "' + cert.name + '"?')) return;
+
+            try {
+                await window.storage.delete('cert:' + id);
+                certificates = certificates.filter(c => c.id !== id);
+                updateStats();
+                renderCertificates();
+                showToast('Certificate deleted', 'success');
+            } catch (error) {
+                console.error('Error deleting certificate:', error);
+                showToast('Error deleting certificate', 'error');
+            }
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            toast.style.background = type === 'success' ? '#10b981' : '#ef4444';
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
